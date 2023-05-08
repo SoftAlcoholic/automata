@@ -20,7 +20,7 @@ def generate_title(text, redaction_type, audience, industry, language):
         response = openai.Completion.create(
             engine="text-davinci-003",
             prompt=prompt,
-            max_tokens=16,
+            max_tokens=32,
             n=1,
             stop=None,
             temperature=0.7,
