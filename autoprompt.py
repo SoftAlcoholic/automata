@@ -81,7 +81,8 @@ def generate_topic(redaction_type, language, audience, industry):
 # Define variables to store the generated values
 for i in range(2):
     redaction_type = generate_redaction_type()
-    language = generate_language()
+    #language = generate_language()
+    language = 'español'
     audience = generate_audience(language)
     industry = generate_industry()
     topic = generate_topic(redaction_type, language, audience, industry)

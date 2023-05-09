@@ -2,10 +2,13 @@
 # Author: Victor Bonilla
 
 # Define the OpenAI API key to use
-OPENAI_API_KEY = "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"
+OPENAI_API_KEY = "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"
 
 # Define the OpenAI engine ID to use
 OPENAI_ENGINE_ID = "text-davinci-003"
 
 # Define the URL of the Wordpress API endpoint
-WORDPRESS_API_URL = "http://192.168.0.39/pagab/w/wp-json/wp/v2/pages"
+WORDPRESS_URL = "https://localhost/wordpress/"
+WORDPRESS_USER = 'restuser'
+WORDPRESS_TKN = 'root'
+WORDPRESS_API_KEY = 'grjI IA60 OnDP eVUa O9nC EA98'

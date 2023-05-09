@@ -1,12 +1,14 @@
 # Description: Text redaction stage
 # Author: Victor Bonilla
 
+#import the required libraries
 import openai
 from fastapi import FastAPI
 from pydantic import BaseModel
 import requests
-from config import OPENAI_API_KEY, OPENAI_ENGINE_ID, WORDPRESS_API_URL
-
+#import feedparser
+#import xmlrpc.client
+from config import OPENAI_API_KEY, OPENAI_ENGINE_ID, WORDPRESS_URL, WORDPRESS_USER, WORDPRESS_TKN, WORDPRESS_API_KEY
 
 # Initialize the FastAPI app
 app = FastAPI()
@@ -113,32 +115,33 @@ def generate_conclusions(text, redaction_type, audience, industry, language, pre
         # If there's an error with the OpenAI API, raise a ValueError with the error message
         raise ValueError(str(e))
 
-# Define a function to send the generated Wordpress page to the Wordpress API
-def send_to_wordpress(title, content):
-    # Define the request body
-    data = {
-        "title": title,
-        "content": content,
-        "status": "publish"
-    }
+# Define a function to send the generated page to Wordpress
+def send_to_wordpress(title, content, url):
+    # Set up the API endpoint for creating a post
+    endpoint = f"{url}/wp-json/wp/v2/posts"
 
-    # Define the request headers
-    headers = {
-        "Authorization": "Bearer YOUR_WORDPRESS_API_TOKEN",
-        "Content-Type": "application/json"
-    }
+    # Set up the request headers with the user's login credentials
+    headers = {"Authorization": f"Bearer {WORDPRESS_API_KEY}", "Content-Type": "application/json"}
+    # Set up the request body with the post data
+    data = {"title": title, "content": content}
 
-    # Send the HTTP POST request to the Wordpress API
-    response = requests.post(WORDPRESS_API_URL, json=data, headers=headers)
+    # Get the username and password from environment variables or a configuration file
+    username = WORDPRESS_USER
+    password = WORDPRESS_TKN
+    if not (username and password):
+        raise ValueError("WordPress username and password are required")
 
-    # Check the response status code
-    if response.status_code == 201:
-        print("Page published successfully!")
-    else:
-        print("Failed to publish page. Response content:")
-        print(response.content)
-
-    
+    # Send the POST request to create the new post
+    try:
+        response = requests.post(endpoint, headers=headers, auth=(username, password), json=data)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.HTTPError as err:
+        print(f"HTTP error: {err}")
+        print(f"Response content: {err.response.content}")
+        print(f"Response headers: {err.response.headers}")
+    except requests.exceptions.RequestException as err:
+        print(f"Request error: {err}")
 # Define an API endpoint that generates a Wordpress page using GPT-3
 @app.post("/generate")
 def generate_wordpress_page(input_data: TextInput, redaction_type: str, language: str, audience: str, industry: str):
@@ -171,9 +174,8 @@ def generate_wordpress_page(input_data: TextInput, redaction_type: str, language
         """
 
         # Send the page content to the Wordpress API
-        #send_to_wordpress(title, page_content)
-
-        #return {"response": response.text}
+        #send_to_wordpress(title, page_content, WORDPRESS_URL)
+        # Return the generated page content
         return {"page_content": page_content}
 
     except Exception as e:
