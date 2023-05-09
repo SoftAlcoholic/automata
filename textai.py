@@ -1,9 +1,12 @@
+# Description: Text redaction stage
+# Author: Victor Bonilla
+
 import openai
 from fastapi import FastAPI
 from pydantic import BaseModel
 import requests
-import time
 from config import OPENAI_API_KEY, OPENAI_ENGINE_ID, WORDPRESS_API_URL
+
 
 # Initialize the FastAPI app
 app = FastAPI()
@@ -27,7 +30,7 @@ def generate_title(text, redaction_type, audience, industry, language):
         response = openai.Completion.create(
             engine= OPENAI_ENGINE_ID,
             prompt=prompt,
-            max_tokens=32,
+            max_tokens=40,
             n=1,
             stop=None,
             temperature=0.7,
@@ -52,7 +55,7 @@ def generate_intro(text, redaction_type, audience, industry, language, previous_
         response = openai.Completion.create(
             engine=OPENAI_ENGINE_ID,
             prompt=prompt,
-            max_tokens=1032,
+            max_tokens=1200,
             n=1,
             stop=None,
             temperature=0.5,
@@ -76,7 +79,7 @@ def generate_points(text, redaction_type, audience, industry, language, previous
         response = openai.Completion.create(
             engine=OPENAI_ENGINE_ID,
             prompt=prompt,
-            max_tokens=1058,
+            max_tokens=550,
             n=1,
             stop=None,
             temperature=0.6,
@@ -87,10 +90,10 @@ def generate_points(text, redaction_type, audience, industry, language, previous
         # If there's an error with the OpenAI API, raise a ValueError with the error message
         raise ValueError(str(e))
 
-# Define a function to generate a summary of the key points
+# Define a function to generate a summary of conclusions
 def generate_conclusions(text, redaction_type, audience, industry, language, previous_prompt_result):
     # Define the agent profile and prompt for the introduction
-    agent_profile = "an opinion journalist, economy expert, and writer"
+    agent_profile = "an opinion journalist, and writer, editor, storyteller, researcher"
     context_params = f"working on a {redaction_type} article targeting a {audience} audience in the {industry} industry, written in {language} (use this params as metadata u dont need to write it in the text, just use it as context)"
     task = f"Write some conclusions about {text}"
     lastPromptContext = f"The key points of the page are:{previous_prompt_result} (use this params as metadata u dont need to write it in the text, just use it as context)"
@@ -99,7 +102,7 @@ def generate_conclusions(text, redaction_type, audience, industry, language, pre
         response = openai.Completion.create(
             engine=OPENAI_ENGINE_ID,
             prompt=prompt,
-            max_tokens=1058,
+            max_tokens=1000,
             n=1,
             stop=None,
             temperature=0.5,
@@ -153,7 +156,7 @@ def generate_wordpress_page(input_data: TextInput, redaction_type: str, language
         points_text = generate_points(input_data, redaction_type, audience, industry, language, previous_prompt_result)
         previous_prompt_result = points_text
 
-        # Step 4: Generate a summary of the key points
+        # Step 4: Generate a summary of conclusions
         summary_text = generate_conclusions(input_data, redaction_type, audience, industry, language, previous_prompt_result)
         previous_prompt_result = summary_text
 
