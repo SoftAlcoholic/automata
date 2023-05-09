@@ -2,7 +2,7 @@ import openai
 from fastapi import FastAPI
 from pydantic import BaseModel
 import requests
-
+from config import OPENAI_API_KEY, OPENAI_ENGINE_ID, WORDPRESS_API_URL
 
 # Initialize the FastAPI app
 app = FastAPI()
@@ -12,7 +12,6 @@ class TextInput(BaseModel):
     text: str
 
 # Initialize the OpenAI API client with your API key
-from config import OPENAI_API_KEY
 openai.api_key = OPENAI_API_KEY
 
 # Define a function to generate a title for a Wordpress page
@@ -25,7 +24,7 @@ def generate_title(text, redaction_type, audience, industry, language):
     try:
         # Use OpenAI's API to generate a title based on the prompt
         response = openai.Completion.create(
-            engine="text-davinci-003",
+            engine= OPENAI_ENGINE_ID,
             prompt=prompt,
             max_tokens=32,
             n=1,
@@ -50,7 +49,7 @@ def generate_intro(text, redaction_type, audience, industry, language, previous_
     try:
         # Use OpenAI's API to generate an introduction based on the prompt
         response = openai.Completion.create(
-            engine="text-davinci-003",
+            engine=OPENAI_ENGINE_ID,
             prompt=prompt,
             max_tokens=1032,
             n=1,
@@ -74,7 +73,7 @@ def generate_points(text, redaction_type, audience, industry, language, previous
     try:
         # Use OpenAI's API to generate an introduction based on the prompt
         response = openai.Completion.create(
-            engine="text-davinci-003",
+            engine=OPENAI_ENGINE_ID,
             prompt=prompt,
             max_tokens=258,
             n=1,
@@ -97,7 +96,7 @@ def generate_conclusions(text, redaction_type, audience, industry, language, pre
     prompt = f"You are {agent_profile}, {context_params}. {task}. {lastPromptContext}"    
     try:
         response = openai.Completion.create(
-            engine="text-davinci-003",
+            engine=OPENAI_ENGINE_ID,
             prompt=prompt,
             max_tokens=258,
             n=1,
@@ -109,10 +108,6 @@ def generate_conclusions(text, redaction_type, audience, industry, language, pre
     except Exception as e:
         # If there's an error with the OpenAI API, raise a ValueError with the error message
         raise ValueError(str(e))
-
-
-# Define the URL of the Wordpress API endpoint
-WORDPRESS_API_URL = "http://192.168.0.39/pagab/w/wp-json/wp/v2/pages"
 
 # Define a function to send the generated Wordpress page to the Wordpress API
 def send_to_wordpress(title, content):
