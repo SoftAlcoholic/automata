@@ -2,6 +2,7 @@ import openai
 from fastapi import FastAPI
 from pydantic import BaseModel
 import requests
+import time
 from config import OPENAI_API_KEY, OPENAI_ENGINE_ID, WORDPRESS_API_URL
 
 # Initialize the FastAPI app
@@ -75,7 +76,7 @@ def generate_points(text, redaction_type, audience, industry, language, previous
         response = openai.Completion.create(
             engine=OPENAI_ENGINE_ID,
             prompt=prompt,
-            max_tokens=258,
+            max_tokens=1058,
             n=1,
             stop=None,
             temperature=0.6,
@@ -98,7 +99,7 @@ def generate_conclusions(text, redaction_type, audience, industry, language, pre
         response = openai.Completion.create(
             engine=OPENAI_ENGINE_ID,
             prompt=prompt,
-            max_tokens=258,
+            max_tokens=1058,
             n=1,
             stop=None,
             temperature=0.5,
@@ -167,7 +168,7 @@ def generate_wordpress_page(input_data: TextInput, redaction_type: str, language
         """
 
         # Send the page content to the Wordpress API
-        send_to_wordpress(title, page_content)
+        #send_to_wordpress(title, page_content)
 
         #return {"response": response.text}
         return {"page_content": page_content}
