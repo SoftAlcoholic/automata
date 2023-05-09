@@ -1,8 +1,12 @@
+# Description: Text redaction stage
+# Author: Victor Bonilla
+
 import openai
 from fastapi import FastAPI
 from pydantic import BaseModel
 import requests
 from config import OPENAI_API_KEY, OPENAI_ENGINE_ID, WORDPRESS_API_URL
+
 
 # Initialize the FastAPI app
 app = FastAPI()
