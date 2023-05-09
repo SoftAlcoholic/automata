@@ -6,7 +6,8 @@ import openai
 from fastapi import FastAPI
 from pydantic import BaseModel
 #import requests
-import feedparser
+#import feedparser
+import xmlrpc.client
 from config import OPENAI_API_KEY, OPENAI_ENGINE_ID, WORDPRESS_URL, WORDPRESS_USER, WORDPRESS_TKN
 from wordpress_xmlrpc import Client, WordPressPost
 from wordpress_xmlrpc.methods.posts import NewPost
@@ -118,18 +119,20 @@ def generate_conclusions(text, redaction_type, audience, industry, language, pre
         raise ValueError(str(e))
 
 # Define a function to send the generated page to Wordpress
-def send_to_wordpress(title, page_content):
-    # Create a new Wordpress post
-    wp = Client(WORDPRESS_URL, WORDPRESS_USER, WORDPRESS_TKN)  # Replace 'admin' and 'password' with your Wordpress username and password
-    post = WordPressPost()
-    post.title = title
-    post.content = page_content
+def send_to_wordpress(title: str, page_content: str) -> int:
+    try:
+        with xmlrpc.client.ServerProxy(WORDPRESS_URL) as wp:
+            post = {
+                'post_title': xmlrpc.client.Binary(title.encode('utf-8')),
+                'post_content': xmlrpc.client.Binary(f'<root>{page_content}</root>'.encode('utf-8')),
+                'post_status': 'publish',
+            }
+            post_id = wp.wp.newPost(0, post)
+            return post_id
+    except xmlrpc.client.ProtocolError as e:
+        # Handle errors
+        raise Exception(f"Failed to send page to Wordpress: {e}")
 
-    # Publish the post to Wordpress
-    post.id = wp.call(NewPost(post))
-
-    return post.id
-    
 # Define an API endpoint that generates a Wordpress page using GPT-3
 @app.post("/generate")
 def generate_wordpress_page(input_data: TextInput, redaction_type: str, language: str, audience: str, industry: str):
@@ -163,8 +166,7 @@ def generate_wordpress_page(input_data: TextInput, redaction_type: str, language
 
         # Send the page content to the Wordpress API
         send_to_wordpress(title, page_content)
-
-        #return {"response": response.text}
+        # Return the generated page content
         return {"page_content": page_content}
 
     except Exception as e:
