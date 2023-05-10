@@ -3,9 +3,12 @@
 
 #import the required libraries
 import openai
+import time
 from fastapi import FastAPI
 from pydantic import BaseModel
 import requests
+from requests.exceptions import HTTPError, RequestException
+
 #import feedparser
 #import xmlrpc.client
 from config import OPENAI_API_KEY, OPENAI_ENGINE_ID, WORDPRESS_URL, WORDPRESS_USER, WORDPRESS_TKN, WORDPRESS_API_KEY
@@ -24,7 +27,7 @@ openai.api_key = OPENAI_API_KEY
 def generate_title(text, redaction_type, audience, industry, language):
     # Define the agent profile and context parameters for the prompt
     agent_profile = "an opinion journalist, economy expert, and writer"
-    context_params = f"working on a {redaction_type} wordpress article targeting a {audience} audience in the {industry} industry, written in {language} (use this params as metadata u dont need to write it in the text, just use it as context)"
+    context_params = f"working on a {redaction_type} wordpress article targeting a {audience} audience in the {industry} industry, written in {language} (use this params as metadata u dont need to write it in the text, just use it as context, Answer me only the result without extra text or data use maximum 30 words)"
     task = f"Generate a title for a Wordpress page about {text}"
     prompt = f"You are {agent_profile}, {context_params}. {task}."
     try:
@@ -37,6 +40,8 @@ def generate_title(text, redaction_type, audience, industry, language):
             stop=None,
             temperature=0.7,
         )
+        print('title')
+        time.sleep(10)
         # Return the generated title as a string with leading/trailing white space removed
         return response.choices[0].text.strip()
     except Exception as e:
@@ -62,6 +67,8 @@ def generate_intro(text, redaction_type, audience, industry, language, previous_
             stop=None,
             temperature=0.5,
         )
+        print('intro')
+        time.sleep(20)
         # Return the generated introduction as a string with leading/trailing white space removed
         return response.choices[0].text.strip()
     except Exception as e:
@@ -73,7 +80,7 @@ def generate_points(text, redaction_type, audience, industry, language, previous
     # Define the agent profile and prompt for the introduction
     agent_profile = "an opinion journalist, economy expert, and writer"
     context_params = f"working on a {redaction_type} article targeting a {audience} audience in the {industry} industry, written in {language} (use this params as metadata u dont need to write it in the text, just use it as context)"
-    task = f"Write a List three key points about {text}"
+    task = f"Write a List, of key points about {text}, this was my introduction {previous_prompt_result}"
     lastPromptContext = f"The intro of the Wordpress page is:{previous_prompt_result} (use this params as metadata u dont need to write it in the text, just use it as context)"
     prompt = f"You are {agent_profile}, {context_params}. {task}. {lastPromptContext}"    
     try:
@@ -86,6 +93,8 @@ def generate_points(text, redaction_type, audience, industry, language, previous
             stop=None,
             temperature=0.6,
         )
+        print('points')
+        time.sleep(12)
         # Return the generated introduction as a string with leading/trailing white space removed
         return response.choices[0].text.strip()
     except Exception as e:
@@ -109,6 +118,8 @@ def generate_conclusions(text, redaction_type, audience, industry, language, pre
             stop=None,
             temperature=0.5,
         )
+        print('conclusions')
+        time.sleep(15)
         # Return the generated introduction as a string with leading/trailing white space removed
         return response.choices[0].text.strip()
     except Exception as e:
@@ -116,56 +127,54 @@ def generate_conclusions(text, redaction_type, audience, industry, language, pre
         raise ValueError(str(e))
 
 # Define a function to send the generated page to Wordpress
-def send_to_wordpress(title, content, url):
-    # Set up the API endpoint for creating a post
-    endpoint = f"{url}/wp-json/wp/v2/posts"
-
+def send_to_wordpress(title, content):
     # Set up the request headers with the user's login credentials
     headers = {"Authorization": f"Bearer {WORDPRESS_API_KEY}", "Content-Type": "application/json"}
+
     # Set up the request body with the post data
-    data = {"title": title, "content": content}
+    data = {"title": title, "content": content, "status": "publish"}
 
-    # Get the username and password from environment variables or a configuration file
-    username = WORDPRESS_USER
-    password = WORDPRESS_TKN
-    if not (username and password):
-        raise ValueError("WordPress username and password are required")
+    # Use a session object to reuse the same TCP connection for multiple requests
+    with requests.Session() as session:
+        session.headers.update(headers)
 
-    # Send the POST request to create the new post
-    try:
-        response = requests.post(endpoint, headers=headers, auth=(username, password), json=data)
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.HTTPError as err:
-        print(f"HTTP error: {err}")
-        print(f"Response content: {err.response.content}")
-        print(f"Response headers: {err.response.headers}")
-    except requests.exceptions.RequestException as err:
-        print(f"Request error: {err}")
+        # Send the POST request to create the new post
+        try:
+            response = session.post(WORDPRESS_URL, json=data, auth=(WORDPRESS_USER,WORDPRESS_API_KEY))
+            response.raise_for_status()
+            return response.json()
+        except HTTPError as err:
+            print(f"HTTP error: {err}")
+            print(f"Response content: {err.response.content}")
+            print(f"Response headers: {err.response.headers}")
+        except RequestException as err:
+            print(f"Request error: {err}")
+
+
 # Define an API endpoint that generates a Wordpress page using GPT-3
 @app.post("/generate")
 def generate_wordpress_page(input_data: TextInput, redaction_type: str, language: str, audience: str, industry: str):
     try:
         # Generate the content for the Wordpress page
         # Step 1: Generate the title
-        title = generate_title(input_data, redaction_type, audience, industry, language)
+        title = str(generate_title(input_data, redaction_type, audience, industry, language))
         previous_prompt_result = title
         
         # Step 2: Generate an introduction to the topic
-        intro_text = generate_intro(input_data, redaction_type, audience, industry, language, previous_prompt_result)
+        intro_text = str(generate_intro(input_data, redaction_type, audience, industry, language, previous_prompt_result))
         previous_prompt_result = intro_text
 
         # Step 3: Generate a list of key points
-        points_text = generate_points(input_data, redaction_type, audience, industry, language, previous_prompt_result)
+        points_text = str(generate_points(input_data, redaction_type, audience, industry, language, previous_prompt_result))
         previous_prompt_result = points_text
 
         # Step 4: Generate a summary of conclusions
-        summary_text = generate_conclusions(input_data, redaction_type, audience, industry, language, previous_prompt_result)
+        summary_text = str(generate_conclusions(input_data, redaction_type, audience, industry, language, previous_prompt_result))
         previous_prompt_result = summary_text
 
         # Step 5: Generate the final Wordpress page content
+
         page_content = f"""
-        <h1>{title}</h1>
         <p>{intro_text}</p>
         <h2>Key Points:</h2>
         <ul>{points_text}</ul>
@@ -174,7 +183,7 @@ def generate_wordpress_page(input_data: TextInput, redaction_type: str, language
         """
 
         # Send the page content to the Wordpress API
-        #send_to_wordpress(title, page_content, WORDPRESS_URL)
+        send_to_wordpress(title, page_content)
         # Return the generated page content
         return {"page_content": page_content}
 
