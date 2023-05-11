@@ -200,8 +200,9 @@ def generate_wordpress_page(input_data: TextInput, redaction_type: str, language
         image_prompt = str(generate_image_prompt(title))
 
         # Step 3: Generate an image using dalle
-        image_url = str(generate_image(image_prompt))
-        
+        #image_url = str(generate_image(image_prompt))
+        image_url = ''
+
         # Step 4: Generate an introduction to the topic
         intro_text = str(generate_intro(input_data, redaction_type, audience, industry, language, previous_prompt_result))
         previous_prompt_result = intro_text
