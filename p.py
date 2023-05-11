@@ -21,7 +21,7 @@ openai.api_key = OPENAI_API_KEY
 # Define a function to generate a title for a Wordpress page
 def generate_url_img():
     # Define the agent profile and context parameters for the prompt
-    prompt = generate_title('tip de belleza','editor de belleza','latam','belleza','español')
+    prompt = generate_title('tip tecnologia','editor de tecnologia','latam','tecnologia','español')
     print (prompt)
     try:
         # 
