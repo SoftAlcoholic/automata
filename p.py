@@ -18,11 +18,32 @@ class TextInput(BaseModel):
 # Initialize the OpenAI API client with your API key
 openai.api_key = OPENAI_API_KEY
 
+def keywords():
+    title=generate_title('tip tecnologia','editor de tecnologia','latam','tecnologia','español')
+    prompt= f"generate english keywords according to the following title {title} separate each word by commas, maximum 10, (use these parameters as metadata you don't need to write them in the text, just use them as context, remember that these words will be used to search for images appropriate to the theme)" 
+    print(title)
+    try:
+        response = openai.Completion.create(
+            engine=OPENAI_ENGINE_ID,
+            prompt=prompt,
+            max_tokens=20,
+            n=1,
+            stop=None,
+            temperature=0.7,
+        )
+        # 
+        return response.choices[0].text.strip()
+    except Exception as e:
+        # If there's an error with the OpenAI API, raise a ValueError with the error message
+        raise ValueError(str(e))
+         
+
+
 # Define a function to generate a title for a Wordpress page
 def generate_url_img():
     # Define the agent profile and context parameters for the prompt
-    #generate_title('tip tecnologia','editor de tecnologia','latam','tecnologia','español')
-    prompt = 'tip tecnologia'
+    #
+    prompt = keywords()
     print (prompt)
     try:
         # 
