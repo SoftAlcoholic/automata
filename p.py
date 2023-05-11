@@ -20,7 +20,7 @@ openai.api_key = OPENAI_API_KEY
 
 def keywords():
     title=generate_title('tip tecnologia','editor de tecnologia','latam','tecnologia','español')
-    prompt= f"generate english keywords according to the following title {title} separate each word by commas, maximum 10, (use these parameters as metadata you don't need to write them in the text, just use them as context, remember that these words will be used to search for images appropriate to the theme)" 
+    prompt= f"generate english keywords to search on a stock images api, according to the following title {title} separate each word by commas, maximum 10, (use these parameters as metadata you don't need to write them in the text, just use them as context, remember that these words will be used to search for images appropriate to the theme)" 
     print(title)
     try:
         response = openai.Completion.create(
