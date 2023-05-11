@@ -21,16 +21,17 @@ openai.api_key = OPENAI_API_KEY
 # Define a function to generate a title for a Wordpress page
 def generate_url_img():
     # Define the agent profile and context parameters for the prompt
-    prompt = generate_title('tip tecnologia','editor de tecnologia','latam','tecnologia','español')
+    #generate_title('tip tecnologia','editor de tecnologia','latam','tecnologia','español')
+    prompt = 'tip tecnologia'
     print (prompt)
     try:
         # 
-        url = "https://api.unsplash.com/photos/random?"
+        url = "https://api.unsplash.com/photos/random"
         #url = "urn:ietf:wg:oauth:2.0:oob"
-        #url = "https://api.unsplash.com/napi/search/photos"
         params = {
             "client_id": "CSOqDW6-YJTSqTC9AJuIRtYa2mldEfNP0cN5tUY2c2A",
-            "query": prompt       
+            "query": prompt,
+            "order_by": 'relevant'      
         }
 
         # Realiza una solicitud GET a la API de Unsplash
