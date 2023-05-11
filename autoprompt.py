@@ -79,7 +79,7 @@ def generate_topic(redaction_type, language, audience, industry):
     return response.choices[0].text.strip()
 
 # Define variables to store the generated values
-for i in range(5):
+for i in range(2):
     redaction_type = generate_redaction_type()
     #language = generate_language()
     language = 'español'

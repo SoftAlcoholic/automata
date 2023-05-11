@@ -1,41 +1,47 @@
 import requests
-from requests.exceptions import HTTPError, RequestException
-from config import WORDPRESS_API_KEY
+from requests.structures import CaseInsensitiveDict
+from PIL import Image
+from config import OPENAI_API_KEY
 
-def send_to_wordpress(title, content, url):
-    # Read credentials from configuration file or environment variables
-    username = 'restuser'
-    password = 'root'
 
-    # Set up the API endpoint for creating a post
-    endpoint = f"{url}/wp-json/wp/v2/posts"
+def generate_image(prompt):
+    # Set up API request parameters
+    url = "https://api.openai.com/v1/images/generations"
+    headers = CaseInsensitiveDict()
+    headers["Content-Type"] = "application/json"
+    headers["Authorization"] = f"Bearer {OPENAI_API_KEY}"
+    
+    # Set up prompt and model parameters
+    model = "image-alpha-001"
+    prompt = f"Generate an image of {prompt}"
+    batch_size = 1
+    
+    # Pass prompt to DALL-E model for image generation
+    data = {
+        "model": model,
+        "prompt": prompt,
+        "num_images": batch_size,
+        "size": '1024x1024',
+        "response_format": "url"
+    }
 
-    # Set up the request headers with the user's login credentials
-    headers = {"Authorization": f"Bearer {WORDPRESS_API_KEY}", "Content-Type": "application/json"}
+    resp = requests.post(url, headers=headers, json=data)
 
-    # Set up the request body with the post data
-    data = {"title": title, "content": content}
+    # Check for errors in API response
+    if resp.status_code != 200:
+        print(f"Error: {resp.status_code} - {resp.text}")
+        return
+    
+    # Extract image URL from API response
+    response_text = resp.json()
+    try:
+        image_url = response_text['data'][0]['url']
+    except KeyError:
+        print(f"Error: Could not find image URL in response - {resp.text}")
+        return
 
-    # Use a session object to reuse the same TCP connection for multiple requests
-    with requests.Session() as session:
-        session.auth = (username, password)
-        session.headers.update(headers)
+    # Download and display image
+    image = Image.open(requests.get(image_url, stream=True).raw)
+    image.show()
 
-        # Send the POST request to create the new post
-        try:
-            response = session.post(endpoint, json=data, verify=False)
-            response.raise_for_status()
-            return response.json()
-        except HTTPError as err:
-            print(f"HTTP error: {err}")
-            print(f"Response content: {err.response.content}")
-            print(f"Response headers: {err.response.headers}")
-        except RequestException as err:
-            print(f"Request error: {err}")
-
-# Example usage
-title = "My new post"
-content = "This is the content of my new post"
-url = "https://localhost/wordpress"
-
-send_to_wordpress(title, content, url)
+generate_image('Generate an image of a crisp, ripe red apple resting on a pristine white plate, with soft shadows falling across the plate and the apples surface.')
