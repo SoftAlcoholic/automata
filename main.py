@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import requests
 from requests.exceptions import HTTPError, RequestException
+from requests.structures import CaseInsensitiveDict
 
 #import feedparser
 #import xmlrpc.client
@@ -125,6 +126,42 @@ def generate_conclusions(text, redaction_type, audience, industry, language, pre
     except Exception as e:
         # If there's an error with the OpenAI API, raise a ValueError with the error message
         raise ValueError(str(e))
+    
+# Define a function to generate a prompt for image generation
+def generate_image_prompt(title: str) -> str:
+    # Define the agent profile and prompt for the introduction
+    agent_profile = "a prompt engineer, expert in dalle models, and you are working on a project to generate a photo, they are going to be used as a portrait for a wordpress post)"
+    context_params = f"the title of the wordpress page is {title} (use this param as metadata u dont need to write it in the result, just use it as context, mandatory = make not to ask dalle for symbols, captions or letters)"
+    task = f"Generate prompt to generate an image for the post portrait(respond only the generated prompt, be as descriptive and specific as possible)."
+    prompt = f"You are {agent_profile}, {context_params}. {task}."
+    try:
+        # Use OpenAI's API to generate an introduction based on the prompt
+        response = openai.Completion.create(
+            engine=OPENAI_ENGINE_ID,
+            prompt=prompt,
+            max_tokens=2000,
+            n=1,
+            stop=None,
+            temperature=0.2
+        )
+        print('image prompt')
+        time.sleep(10)
+        # Return the generated introduction as a string with leading/trailing white space removed
+        return response.choices[0].text.strip()
+    except Exception as e:
+        # If there's an error with the OpenAI API, raise a ValueError with the error message
+        raise ValueError(str(e))
+
+
+# Define a function to generate an image using DALL-E
+def generate_image(prompt):
+    response = openai.Image.create(
+    prompt=f"Generate an photo of {prompt}",
+    n=1,
+    size="512x512"
+)
+    print(prompt)
+    return response['data'][0]['url']
 
 # Define a function to send the generated page to Wordpress
 def send_to_wordpress(title, content):
@@ -150,7 +187,6 @@ def send_to_wordpress(title, content):
         except RequestException as err:
             print(f"Request error: {err}")
 
-
 # Define an API endpoint that generates a Wordpress page using GPT-3
 @app.post("/generate")
 def generate_wordpress_page(input_data: TextInput, redaction_type: str, language: str, audience: str, industry: str):
@@ -159,23 +195,29 @@ def generate_wordpress_page(input_data: TextInput, redaction_type: str, language
         # Step 1: Generate the title
         title = str(generate_title(input_data, redaction_type, audience, industry, language))
         previous_prompt_result = title
+
+        # Step 2: Generate a prompt to generate a related image
+        image_prompt = str(generate_image_prompt(title))
+
+        # Step 3: Generate an image using dalle
+        image_url = str(generate_image(image_prompt))
         
-        # Step 2: Generate an introduction to the topic
+        # Step 4: Generate an introduction to the topic
         intro_text = str(generate_intro(input_data, redaction_type, audience, industry, language, previous_prompt_result))
         previous_prompt_result = intro_text
 
-        # Step 3: Generate a list of key points
+        # Step 5: Generate a list of key points
         points_text = str(generate_points(input_data, redaction_type, audience, industry, language, previous_prompt_result))
         previous_prompt_result = points_text
 
-        # Step 4: Generate a summary of conclusions
+        # Step 6: Generate a summary of conclusions
         summary_text = str(generate_conclusions(input_data, redaction_type, audience, industry, language, previous_prompt_result))
         previous_prompt_result = summary_text
 
-        # Step 5: Generate the final Wordpress page content
-
+        # Step 7: Generate the final Wordpress page content
         page_content = f"""
         <p>{intro_text}</p>
+        <img src="{image_url}">
         <h2>Key Points:</h2>
         <ul>{points_text}</ul>
         <h2>Summary:</h2>
